@@ -1,0 +1,13 @@
+# Python 虚拟环境
+venv/
+venv_memory_system/
+
+# Python 编译和缓存文件
+__pycache__/
+*.pyc
+
+# BERT 向量缓存文件 (非常大，不应提交)
+memory_system/data/word_vectors_cache.npy 
+
+# 操作系统文件
+.DS_Store
