@@ -1,0 +1,82 @@
+{
+    "credit": {
+        "word": "credit",
+        "meaning_zh": "信用；学分；赞扬",
+        "e_factor": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "last_reviewed": "2025-10-18 13:19:32"
+    },
+    "decade": {
+        "word": "decade",
+        "meaning_zh": "十年",
+        "e_factor": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "last_reviewed": "2025-10-18 13:19:32"
+    },
+    "absurd": {
+        "word": "absurd",
+        "meaning_zh": "荒谬的；可笑的",
+        "e_factor": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "last_reviewed": "2025-10-18 13:19:32"
+    },
+    "sustain": {
+        "word": "sustain",
+        "meaning_zh": "维持；支撑；遭受",
+        "e_factor": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "last_reviewed": "2025-10-18 13:19:32"
+    },
+    "theory": {
+        "word": "theory",
+        "meaning_zh": "理论；学说",
+        "e_factor": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "last_reviewed": "2025-10-18 13:19:32"
+    },
+    "strategy": {
+        "word": "strategy",
+        "meaning_zh": "战略；策略",
+        "e_factor": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "last_reviewed": "2025-10-18 13:19:32"
+    },
+    "revolve": {
+        "word": "revolve",
+        "meaning_zh": "旋转；循环",
+        "e_factor": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "last_reviewed": "2025-10-18 13:19:32"
+    },
+    "elegant": {
+        "word": "elegant",
+        "meaning_zh": "优雅的；精致的",
+        "e_factor": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "last_reviewed": "2025-10-18 13:19:32"
+    },
+    "enormous": {
+        "word": "enormous",
+        "meaning_zh": "巨大的；庞大的",
+        "e_factor": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "last_reviewed": "2025-10-18 13:19:32"
+    },
+    "venture": {
+        "word": "venture",
+        "meaning_zh": "冒险；投机",
+        "e_factor": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "last_reviewed": "2025-10-18 13:19:32"
+    }
+}

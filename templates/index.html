@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联想记忆背单词系统</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 基础样式和字体设置 */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 0;
+            /* 确保在小屏幕上有滚动空间 */
+        }
+
+        .container {
+            max-width: 900px;
+            width: 95%;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 5px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+        }
+
+        /* Tab 菜单样式 */
+        .tab-menu {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 0;
+            text-align: center;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #64748b;
+            transition: all 0.3s ease;
+            border-radius: 8px 8px 0 0;
+            margin-right: 4px;
+        }
+
+        .tab-button.active {
+            color: #1d4ed8;
+            border-bottom: 3px solid #1d4ed8;
+            background-color: #f8fafc;
+        }
+
+        /* 隐藏未激活的 Tab 内容 */
+        .tab-content {
+            display: none;
+        }
+
+        /* 单词卡片样式 */
+        #word-card {
+            min-height: 250px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        /* 加载指示器样式 */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #1d4ed8;
+            animation: spin 1s ease infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-extrabold text-blue-700 mb-6">联想记忆背单词系统</h1>
+
+        <!-- Tab 菜单 -->
+        <div class="tab-menu">
+            <button class="tab-button active" onclick="openTab(event, 'review-section')">🔄 智能复习</button>
+            <button class="tab-button" onclick="openTab(event, 'query-section')">🔎 联想查询</button>
+        </div>
+
+        <!-- 1. 智能复习 Tab 内容 -->
+        <div id="review-section" class="tab-content">
+            <!-- 复习进度条 ** [优化] ** -->
+            <div id="review-progress-container" class="mb-4">
+                <div class="text-sm font-medium text-gray-600 mb-1 flex justify-between">
+                    <span>复习进度</span>
+                    <span id="progress-text">0/0 (0%)</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div id="progress-bar"
+                        class="bg-blue-600 h-2.5 rounded-full transition-all duration-500 ease-in-out"
+                        style="width: 0%">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <button id="start-review-button"
+                    class="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    开始复习 / 刷新待复习列表
+                </button>
+            </div>
+
+            <!-- 单词卡片区 -->
+            <!-- 核心改动区域：增加了 card-phonetic 和 card-meaning-group 容器 -->
+            <div id="word-card" class="mb-6 flex flex-col justify-between">
+                <!-- 加载指示器 ** [优化] ** -->
+                <div id="loading-spinner" class="spinner hidden"></div>
+                <p id="review-status" class="text-gray-500 italic text-sm mb-4">点击上方按钮加载待复习单词...</p>
+                <div id="current-word-display" class="hidden">
+                    <!-- 1. 单词 -->
+                    <h2 id="card-word" class="text-5xl font-black text-gray-800 mb-2"></h2>
+
+                    <!-- 2. 音标 (新增加) -->
+                    <!-- 使用 font-serif 或其他字体来模拟音标的专业感 -->
+                    <p id="card-phonetic" class="text-2xl text-gray-500 font-serif mb-4"></p>
+
+                    <!-- 3. 词性 + 释义 组合框 (新增加，用于统一控制显示/隐藏) -->
+                    <div id="card-meaning-group" class="mb-6 hidden w-full">
+                        <!-- 确保内容居中 -->
+                        <p class="text-2xl text-gray-700 font-serif flex justify-center items-start">
+                            <!-- 词性 (新增加，位于释义前面) -->
+                            <span id="card-pos" class="mr-3 text-blue-600 font-bold italic text-xl"></span>
+                            <!-- 释义文本 -->
+                            <span id="card-meaning-text"></span>
+                        </p>
+                    </div>
+
+                    <p id="card-status" class="text-sm text-gray-400 mt-2"></p>
+                </div>
+            </div>
+
+            <!-- 操作按钮区 -->
+            <div id="action-buttons" class="hidden">
+                <div class="flex justify-center space-x-4 mb-6">
+                    <button id="show-meaning-button"
+                        class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">显示/隐藏释义
+                        (Space)</button>
+                    <!-- 联想提示开关 -->
+                    <button id="hint-toggle"
+                        class="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed">加载联想提示</button>
+                </div>
+
+                <!-- 联想提示内容 -->
+                <div id="hint-content-card" class="bg-indigo-50 p-4 rounded-lg mb-6 hidden">
+                    <h3 class="font-semibold text-indigo-800 mb-2 border-b border-indigo-200 pb-1">联想提示</h3>
+                    <div id="hint-content" class="text-sm text-indigo-700 max-h-40 overflow-y-auto">
+                        <!-- 联想词汇将加载到这里 -->
+                    </div>
+                </div>
+
+                <!-- 记忆评分按钮 -->
+                <div class="text-center mb-4">
+                    <p class="text-lg font-semibold text-gray-700 mb-3">我记住了多少？ (键盘 0-5)</p>
+                    <div class="flex justify-between space-x-1">
+                        <!-- 评分按钮 0-5 -->
+                        <button data-quality="0" title="完全忘记"
+                            class="quality-btn flex-1 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition duration-150 shadow-md disabled:bg-gray-400">0</button>
+                        <button data-quality="1" title="又忘了"
+                            class="quality-btn flex-1 py-3 bg-red-400 text-white font-bold rounded-lg hover:bg-red-500 transition duration-150 shadow-md disabled:bg-gray-400">1</button>
+                        <button data-quality="2" title="勉强记得"
+                            class="quality-btn flex-1 py-3 bg-yellow-500 text-white font-bold rounded-lg hover:bg-yellow-600 transition duration-150 shadow-md disabled:bg-gray-400">2</button>
+                        <button data-quality="3" title="记住了，犹豫"
+                            class="quality-btn flex-1 py-3 bg-green-400 text-white font-bold rounded-lg hover:bg-green-500 transition duration-150 shadow-md disabled:bg-gray-400">3</button>
+                        <button data-quality="4" title="记住了，流利"
+                            class="quality-btn flex-1 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition duration-150 shadow-md disabled:bg-gray-400">4</button>
+                        <button data-quality="5" title="完美记住"
+                            class="quality-btn flex-1 py-3 bg-green-700 text-white font-bold rounded-lg hover:bg-green-800 transition duration-150 shadow-md disabled:bg-gray-400">5</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- 2. 联想查询 Tab 内容 -->
+        <div id="query-section" class="tab-content">
+            <div class="flex mb-4 space-x-3">
+                <input type="text" id="query-word" placeholder="输入要查询的单词"
+                    class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                <button id="search-button"
+                    class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    查询联想词
+                </button>
+            </div>
+
+            <!-- 联想模式选择 -->
+            <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <label for="query-mode" class="block text-sm font-medium text-gray-700 mb-2">联想模式：</label>
+                <div class="flex space-x-4">
+                    <label class="inline-flex items-center">
+                        <input type="radio" name="query-mode" value="total" checked
+                            class="form-radio text-indigo-600 h-4 w-4">
+                        <span class="ml-2 text-gray-700">总分模式 (语义+字形)</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="radio" name="query-mode" value="semantic"
+                            class="form-radio text-indigo-600 h-4 w-4">
+                        <span class="ml-2 text-gray-700">语义模式 (仅语义)</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="radio" name="query-mode" value="form" class="form-radio text-indigo-600 h-4 w-4">
+                        <span class="ml-2 text-gray-700">字形模式 (仅字形)</span>
+                    </label>
+                </div>
+                <div class="mt-3 text-sm text-gray-500">
+                    在“语义/字形模式”下，将显示所有相似度大于 0.7 的词。
+                </div>
+            </div>
+
+            <!-- 结果显示区 -->
+            <div class="bg-white p-5 rounded-lg border border-gray-300 shadow-inner">
+                <h3 class="text-xl font-semibold text-gray-800 mb-3 flex justify-between items-center">
+                    联想结果
+                    <span class="text-sm font-normal text-gray-500">
+                        找到 <span id="recommendation-count" class="font-bold text-indigo-600">0</span> 个词汇
+                    </span>
+                </h3>
+                <div id="recommendation-list" class="space-y-3 max-h-96 overflow-y-auto">
+                    <p class="text-gray-500 italic">在此输入单词进行查询...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 消息提示框 -->
+        <div id="message-box"
+            class="fixed bottom-4 right-4 p-4 rounded-lg text-white font-semibold shadow-xl transition-opacity duration-300 hidden"
+            role="alert">
+        </div>
+
+        <!-- 模态框 ** [优化] ** -->
+        <div id="modal-backdrop"
+            class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center z-50">
+            <div id="modal-box"
+                class="bg-white rounded-xl shadow-2xl p-6 w-11/12 md:w-1/3 transform transition-all duration-300 scale-95 opacity-0">
+                <h3 id="modal-title" class="text-xl font-bold mb-3 text-gray-800">提示</h3>
+                <p id="modal-content" class="text-gray-600 mb-6"></p>
+                <div class="flex justify-end">
+                    <button id="modal-close-button"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // *** 修复错误的关键：明确指定 API 服务器的 URL ***
+        const API_BASE_URL = "http://127.0.0.1:5000/api/";
+
+        // ** [优化] ** 统一状态管理对象
+        const appState = {
+            reviewWords: [],
+            currentWordIndex: 0,
+            isLoading: false,
+        };
+
+        const elements = {
+            reviewStatus: document.getElementById('review-status'),
+            loadingSpinner: document.getElementById('loading-spinner'),
+            cardDisplay: document.getElementById('current-word-display'),
+            actionButtons: document.getElementById('action-buttons'),
+
+            // 单词卡片核心元素更新
+            cardWord: document.getElementById('card-word'),
+            cardPhonetic: document.getElementById('card-phonetic'), // 新增：音标
+            cardPos: document.getElementById('card-pos'),         // 新增：词性
+            cardMeaningText: document.getElementById('card-meaning-text'), // 释义文本
+            cardMeaningGroup: document.getElementById('card-meaning-group'), // 释义和词性的组合容器，用于切换显示/隐藏
+
+            cardStatus: document.getElementById('card-status'),
+            reviewProgressContainer: document.getElementById('review-progress-container'),
+            progressBar: document.getElementById('progress-bar'),
+            progressText: document.getElementById('progress-text'),
+            startReviewButton: document.getElementById('start-review-button'),
+            hintContentCard: document.getElementById('hint-content-card'),
+            hintContent: document.getElementById('hint-content'),
+            hintToggle: document.getElementById('hint-toggle'),
+            searchButton: document.getElementById('search-button'),
+        };
+
+        /** 消息提示函数 (沿用，但 Modal 用于重要提示) */
+        function showMessage(msg, type = 'info') {
+            const box = document.getElementById('message-box');
+            box.innerText = msg;
+            box.className = 'fixed bottom-4 right-4 p-4 rounded-lg text-white font-semibold shadow-xl transition-opacity duration-300';
+
+            // 设置颜色
+            if (type === 'success') {
+                box.classList.add('bg-green-600');
+            } else if (type === 'error') {
+                box.classList.add('bg-red-600');
+            } else {
+                box.classList.add('bg-blue-500');
+            }
+
+            box.classList.remove('hidden');
+            setTimeout(() => {
+                box.classList.add('hidden');
+            }, 5000);
+        }
+
+        // ** [优化] ** 模态框显示函数
+        function showModal(title, content) {
+            const backdrop = document.getElementById('modal-backdrop');
+            const box = document.getElementById('modal-box');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-content').innerText = content;
+
+            backdrop.classList.remove('hidden');
+            setTimeout(() => {
+                box.classList.add('scale-100', 'opacity-100');
+                box.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+
+        // ** [优化] ** 模态框关闭函数
+        document.getElementById('modal-close-button').addEventListener('click', () => {
+            const backdrop = document.getElementById('modal-backdrop');
+            const box = document.getElementById('modal-box');
+
+            box.classList.add('scale-95', 'opacity-0');
+            box.classList.remove('scale-100', 'opacity-100');
+
+            setTimeout(() => {
+                backdrop.classList.add('hidden');
+            }, 300); // 等待过渡完成
+        });
+
+
+        /** 统一的 API Fetch 函数 (加入 Loading 状态管理) */
+        async function apiFetch(endpoint, options = {}, toggleLoading = false) {
+            if (appState.isLoading) return; // 防止重复点击
+            if (toggleLoading) {
+                setLoadingState(true);
+            }
+
+            try {
+                // 使用完整的 URL
+                const response = await fetch(API_BASE_URL + endpoint, options);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showModal('API 错误', data.error || '服务器返回错误，请检查 Flask 后端。');
+                    throw new Error(data.error || 'API call failed');
+                }
+                return data;
+            } catch (error) {
+                showModal('网络或服务器连接失败', `请确认 Flask 服务器 (127.0.0.1:5000) 正在运行。错误信息: ${error.message}`);
+                throw error;
+            } finally {
+                if (toggleLoading) {
+                    setLoadingState(false);
+                }
+            }
+        }
+
+        // ** [优化] ** 加载状态管理函数
+        function setLoadingState(isLoading) {
+            appState.isLoading = isLoading;
+            const buttons = document.querySelectorAll('button:not(#modal-close-button)');
+            buttons.forEach(btn => btn.disabled = isLoading);
+
+            if (isLoading) {
+                elements.loadingSpinner.classList.remove('hidden');
+                elements.cardDisplay.classList.add('hidden');
+            } else {
+                elements.loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        /** Tab 切换逻辑 */
+        function openTab(evt, tabName) {
+            let i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.classList.add("active");
+        }
+
+        // ** [优化] ** 更新进度条
+        function updateProgress() {
+            const total = appState.reviewWords.length;
+            const reviewed = appState.currentWordIndex;
+            const percent = total > 0 ? Math.round((reviewed / total) * 100) : 0;
+
+            elements.progressText.innerText = `${reviewed}/${total} (${percent}%)`;
+            elements.progressBar.style.width = `${percent}%`;
+
+            if (total === 0) {
+                elements.reviewProgressContainer.classList.add('hidden');
+            } else {
+                elements.reviewProgressContainer.classList.remove('hidden');
+            }
+        }
+
+        // --- 智能复习逻辑 ---
+
+        /** 显示当前单词卡片 */
+        function showCurrentWord() {
+            const currentWord = appState.reviewWords[appState.currentWordIndex];
+
+            // 隐藏释义和提示，注意现在目标是 cardMeaningGroup
+            elements.cardMeaningGroup.classList.add('hidden');
+            elements.hintContentCard.classList.add('hidden');
+            elements.hintContent.innerHTML = '点击“加载联想提示”按钮获取。';
+            elements.hintToggle.innerText = '加载联想提示';
+
+            if (currentWord) {
+                elements.cardWord.innerText = currentWord.word;
+
+                // 假设后端数据包含 phonetic 和 pos
+                // 仅用于演示，实际应从后端API获取
+                elements.cardPhonetic.innerText = currentWord.phonetic || '/ɪɡˈzæmpəl/';
+                elements.cardPos.innerText = currentWord.pos || 'n.';
+                elements.cardMeaningText.innerText = currentWord.meaning_zh;
+
+                elements.cardStatus.innerText = `待复习：${appState.reviewWords.length - appState.currentWordIndex} / ${appState.reviewWords.length}`;
+
+                elements.reviewStatus.classList.add('hidden');
+                elements.cardDisplay.classList.remove('hidden');
+                elements.actionButtons.classList.remove('hidden');
+
+                elements.cardWord.focus(); // 聚焦卡片
+            } else {
+                // 复习完成
+                elements.cardWord.innerText = '✅ 复习完成！';
+                elements.cardPhonetic.innerText = ''; // 清空音标
+                elements.cardPos.innerText = '';      // 清空词性
+                elements.cardMeaningText.innerText = '所有待复习词汇已处理。';
+                elements.cardMeaningGroup.classList.remove('hidden'); // 显示完成信息
+                elements.cardStatus.innerText = '点击“开始复习”按钮刷新。';
+
+                elements.reviewStatus.classList.add('hidden');
+                elements.cardDisplay.classList.remove('hidden');
+                elements.actionButtons.classList.add('hidden');
+            }
+
+            updateProgress();
+        }
+
+        /** 加载待复习单词列表 */
+        async function loadReviewWords() {
+            appState.currentWordIndex = 0;
+            elements.reviewStatus.innerText = '正在加载待复习单词...';
+            elements.reviewStatus.classList.remove('hidden');
+            elements.cardDisplay.classList.add('hidden');
+            elements.actionButtons.classList.add('hidden');
+
+            try {
+                // ** [优化] ** 使用 toggleLoading 自动管理状态
+                const data = await apiFetch('review_list?limit=50', { method: 'GET' }, true);
+                appState.reviewWords = data.words;
+
+                if (appState.reviewWords.length === 0) {
+                    showMessage('恭喜！目前没有需要复习的单词。', 'info');
+                    elements.reviewStatus.innerText = '恭喜！目前没有需要复习的单词。';
+                } else {
+                    showMessage(`成功加载 ${appState.reviewWords.length} 个待复习单词。`, 'success');
+                }
+
+                showCurrentWord(); // 显示第一个或完成状态
+
+            } catch (error) {
+                // 错误已在 apiFetch 中显示
+                elements.reviewStatus.innerText = '加载失败，请确保 Flask 服务器正在运行。';
+            }
+        }
+
+        /** 加载联想推荐 (在复习卡片中使用) */
+        async function loadHintRecommendations() {
+            if (appState.currentWordIndex >= appState.reviewWords.length) return;
+            const currentWord = appState.reviewWords[appState.currentWordIndex].word;
+
+            elements.hintContent.innerHTML = '<p class="text-indigo-600 italic">正在加载联想词...</p>';
+            elements.hintToggle.disabled = true; // 禁用按钮
+
+            try {
+                const data = await apiFetch(`recommend?word=${currentWord}&mode=total&top_n=10`, { method: 'GET' });
+                const recommendations = data.recommendations;
+
+                let hintHtml = '';
+                if (recommendations.length === 0) {
+                    hintHtml = '<p class="text-sm text-gray-500">未找到相关联想词。</p>';
+                } else {
+                    hintHtml = '<ul class="space-y-1">';
+                    recommendations.forEach(rec => {
+                        hintHtml += `<li class="p-1 border-b border-gray-100 last:border-b-0 flex justify-between items-center">
+                            <span class="font-semibold text-gray-900">${rec.word}</span>
+                            <span class="text-sm text-gray-600">${rec.meaning_zh}</span>
+                            <div class="flex space-x-2 text-xs font-mono">
+                                <span class="px-1 bg-teal-100 text-teal-700 rounded">S总: ${rec.S_total.toFixed(4)}</span>
+                                <span class="px-1 bg-blue-100 text-blue-700 rounded">S形: ${rec.S_form.toFixed(3)}</span>
+                            </div>
+                        </li>`;
+                    });
+                    hintHtml += '</ul>';
+                }
+                elements.hintContent.innerHTML = hintHtml;
+
+            } catch (error) {
+                elements.hintContent.innerHTML = '<p class="text-red-500">联想提示加载失败。</p>';
+            } finally {
+                elements.hintToggle.disabled = false;
+            }
+        }
+
+        /** 处理记忆评分 */
+        async function handleQualityRating(quality) {
+            if (appState.currentWordIndex >= appState.reviewWords.length || appState.isLoading) {
+                showMessage('复习已完成或正在处理中。', 'info');
+                return;
+            }
+
+            const word = appState.reviewWords[appState.currentWordIndex].word;
+
+            try {
+                // 1. 发送更新请求
+                const result = await apiFetch('update_memory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ word, quality })
+                }, true); // ** [优化] ** 评分时也显示加载
+
+                showMessage(`单词 '${word}' 状态更新成功。下次复习：${result.details.next_review_date.split(' ')[0]}`, 'success');
+
+                // 2. 移动到下一个单词
+                appState.currentWordIndex++;
+                showCurrentWord();
+
+            } catch (error) {
+                // 错误已在 apiFetch 中显示
+            }
+        }
+
+        // --- 联想查询 Tab 逻辑 ---
+
+        /** 联想查询 Tab 的查询功能 */
+        async function fetchAssociationRecommendations() {
+            const queryWord = document.getElementById('query-word').value.trim();
+            const mode = document.querySelector('input[name="query-mode"]:checked').value;
+            const listElement = document.getElementById('recommendation-list');
+            const countElement = document.getElementById('recommendation-count');
+
+            if (!queryWord) {
+                showMessage('请输入查询的单词。', 'info');
+                return;
+            }
+
+            listElement.innerHTML = '<p class="text-indigo-600">正在查询联想词...</p>';
+            countElement.innerText = '...';
+            elements.searchButton.disabled = true; // 禁用按钮
+
+            try {
+                const data = await apiFetch(`recommend?word=${queryWord}&mode=${mode}&threshold=0.7&top_n=10`, { method: 'GET' });
+                const recommendations = data.recommendations;
+
+                let listHtml = '';
+                recommendations.forEach(rec => {
+                    listHtml += `
+                        <li class="p-3 border border-gray-100 flex justify-between items-center bg-white hover:bg-gray-50 rounded-md transition-colors">
+                            <div class="flex flex-col">
+                                <span class="font-semibold text-lg text-gray-800">${rec.word}</span>
+                                <span class="text-sm text-gray-500">${rec.meaning_zh}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-mono px-2 py-1 bg-teal-100 text-teal-700 rounded-full">
+                                    S总: ${rec.S_total.toFixed(4)}
+                                </span>
+                                <span class="text-xs font-mono px-2 py-1 bg-blue-100 text-blue-700 rounded-full ml-2">
+                                    S形: ${rec.S_form.toFixed(3)}
+                                </span>
+                            </div>
+                        </li>
+                    `;
+                });
+                listElement.innerHTML = `<ul class="space-y-2">${listHtml}</ul>`;
+                countElement.innerText = recommendations.length;
+
+            } catch (error) {
+                listElement.innerHTML = `<li class="text-red-500">联想查询失败，请检查后端服务。</li>`;
+                countElement.innerText = '0';
+            } finally {
+                elements.searchButton.disabled = false;
+            }
+        }
+
+
+        // --- 绑定事件监听器 ---
+
+        /** 记忆评分按钮 */
+        document.querySelectorAll('.quality-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const quality = parseInt(this.getAttribute('data-quality'));
+                handleQualityRating(quality);
+            });
+        });
+
+        /** 启动复习流程 */
+        elements.startReviewButton.addEventListener('click', loadReviewWords);
+
+        /** 联想查询 Tab 的查询按钮 */
+        elements.searchButton.addEventListener('click', fetchAssociationRecommendations);
+
+        /** 显示/隐藏释义 */
+        document.getElementById('show-meaning-button').addEventListener('click', function () {
+            // 现在切换的是包含词性和释义的整个容器
+            elements.cardMeaningGroup.classList.toggle('hidden');
+        });
+
+        /** 提示开关逻辑 (复习模式) */
+        elements.hintToggle.addEventListener('click', async function () {
+            if (elements.hintContentCard.classList.contains('hidden')) {
+                // 如果当前是隐藏状态，则加载内容并显示
+                await loadHintRecommendations();
+                elements.hintContentCard.classList.remove('hidden');
+                this.innerText = '隐藏联想提示';
+            } else {
+                // 如果当前是显示状态，则隐藏
+                elements.hintContentCard.classList.add('hidden');
+                this.innerText = '加载联想提示';
+            }
+        });
+
+        // ** [优化] ** 键盘事件监听 (绑定到 body 提高效率)
+        document.addEventListener('keydown', (e) => {
+            // 确保在复习 Tab 且不在输入框中时触发
+            const isReviewTab = document.getElementById('review-section').style.display !== 'none';
+            const isInputFocused = document.activeElement.tagName === 'INPUT';
+
+            if (!isReviewTab || isInputFocused || appState.isLoading) return;
+
+            // 1. 0-5 评分快捷键
+            if (e.key >= '0' && e.key <= '5') {
+                e.preventDefault();
+                const quality = parseInt(e.key);
+                document.querySelector(`.quality-btn[data-quality="${quality}"]`).focus(); // 提供视觉反馈
+                handleQualityRating(quality);
+            }
+            // 2. Spacebar 显示/隐藏释义
+            else if (e.key === ' ') {
+                e.preventDefault();
+                elements.cardMeaningGroup.classList.toggle('hidden'); // 切换释义容器
+            }
+            // 3. Enter 切换联想提示
+            else if (e.key === 'Enter') {
+                e.preventDefault();
+                elements.hintToggle.click();
+            }
+        });
+
+        // --- 初始化 ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 默认打开复习 Tab
+            const firstTabButton = document.querySelector('.tab-menu .tab-button:nth-child(1)');
+            if (firstTabButton) {
+                const mockEvent = { currentTarget: firstTabButton };
+                openTab(mockEvent, 'review-section');
+            }
+            // 首次加载时不自动获取复习列表，等待用户点击
+            updateProgress();
+        });
+    </script>
+</body>
+
+</html>
